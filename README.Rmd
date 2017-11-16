@@ -1,0 +1,198 @@
+---
+output:
+  md_document:
+    variant: markdown_github
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "README-"
+)
+```
+
+# Have no fear, you're almost there!
+
+We need a few things installed before we're good to go, but I promise it'll be quick and painless!
+
+## Getting started
+
+You only need to do the following once!
+
+In order to use `Keras` and `TensorFlow`, we need to install them along with the `TidyVerse` framework. Since we're working with peptides in this example, we also need the `ggseqlogo` package for generating sequence logos. Fortunately this is straight forward using `devtools`:
+
+```{r install_devtools, eval=FALSE}
+install.packages("devtools")
+```
+
+Now we load the `devtools` library, which will enable us to install the remaining requirements:
+
+```{r load_devtools}
+library("devtools")
+```
+
+and then install requirements
+```{r install_requirements, eval=FALSE}
+install.packages("tidyverse")
+devtools::install_github("rstudio/keras")
+devtools::install_github("omarwagih/ggseqlogo")
+devtools::install_github("leonjessen/PepTools")
+```
+
+and then simply run
+```{r load_keras}
+library("keras")
+```
+
+Followed by
+```{r install_keras, eval=FALSE}
+install_keras()
+```
+
+That's it! Now we have all we need to be masters of the universe!
+
+# Deep Feed Forward Artificial Neural Network
+
+Here is a basic example of a deep FFWD ANN workflow
+
+First we clear the workspace to avoid unintentional reuse of old variables
+```{r clear_workspace}
+rm(list=ls())
+```
+
+Then we load the needed libraries
+```{r load_libraries}
+library("keras")
+library("tidyverse")
+library("ggseqlogo")
+library("PepTools")
+```
+
+Then we load the example data
+```{r load_data}
+pep_file = "https://raw.githubusercontent.com/leonjessen/keras_tensorflow_demo/master/data/ran_peps_netMHCpan40_predicted_A0201_reduced_cleaned_balanced.tsv"
+pep_dat = read_tsv(file = pep_file)
+``` 
+
+The example peptide data looks like this
+```{r view_pep_dat}
+pep_dat
+```
+
+We can use TidyVerse methods to summarise the input data
+```{r summarise_pep_dat}
+pep_dat %>% group_by(label_chr, data_type) %>% summarise(n = n())
+```
+
+Or use the ggseqlogo package to visualise the sequence motif for the strong binders
+```{r seq_logo}
+pep_dat %>% filter(label_chr=='SB') %>% pull(peptide) %>% ggseqlogo()
+```
+
+## Prepare data
+
+We need to define the `x_train`, `y_train`, `x_test` and `y_test`
+```{r set_train_and_test}
+x_train = pep_dat %>% filter(data_type == 'train') %>% pull(peptide) %>% pep_encode
+y_train = pep_dat %>% filter(data_type == 'train') %>% pull(label_num) %>% array
+x_test  = pep_dat %>% filter(data_type == 'test') %>% pull(peptide) %>% pep_encode
+y_test  = pep_dat %>% filter(data_type == 'test') %>% pull(label_num) %>% array
+```
+
+The x data is a 3-d array: ‘total #peptides’ x ‘length of each peptide (9)’ x ‘#unique residue (20)’ To prepare the data for training we convert the 3-d arrays into matrices by reshaping width and height into a single dimension (9x20 peptide ‘images’ are flattened into vectors og lengths 180)
+```{r flatten_tensor}
+dim(x_train) = c(nrow(x_train), dim(x_train)[2] * dim(x_train)[3])
+dim(x_test)  = c(nrow(x_test), dim(x_test)[2] * dim(x_test)[3])
+```
+
+The y data is an integer vector with values ranging from 0 to 2. To prepare this data for training we encode the vectors into binary class matrices using the Keras to_categorical() function:
+```{r set_bin_matrices}
+y_train = to_categorical(y_train, y_train %>% table() %>% length)
+y_test  = to_categorical(y_test, y_test %>% table() %>% length)
+```
+
+## Defining the model
+
+The core data structure of Keras is a model, a way to organize layers. The simplest type of model is the Sequential model, a linear stack of layers. We begin by creating a sequential model and then adding layers using the pipe (%>%) operator:
+```{r define_model}
+model = keras_model_sequential() 
+model %>% 
+  layer_dense(units  = 180, activation = 'relu', input_shape = c(180)) %>% 
+  layer_dropout(rate = 0.4) %>% 
+  layer_dense(units  = 90, activation  = 'relu') %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units  = 3, activation   = 'softmax')
+```
+
+The input_shape argument to the first layer specifies the shape of the input data (a length 180 numeric vector representing a peptide 'image'). The final layer outputs a length 3 numeric vector (probabilities for each class `SB`, `WB` and `NB`) using a softmax activation function.
+
+We can use the summary() function to print the details of the model:
+
+```{r summarise_model}
+summary(model)
+```
+
+Next, compile the model with appropriate loss function, optimizer, and metrics:
+```{r compile_model}
+model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+## Training and evaluation
+We use the fit() function to train the model for 500 epochs using batches of 50 peptide ‘images’:
+```{r train_and_eval}
+history = model %>% fit(
+  x_train, y_train, 
+  epochs = 500, batch_size = 50,
+  validation_split = 0.2
+)
+```
+
+## Visualise training
+
+We can visualise the training progress in each epoch using `ggplot`:
+```{r visualise_training}
+plot_dat = tibble(epoch = rep(1:history$params$epochs,2),
+                  value = c(history$metrics$acc,history$metrics$val_acc),
+                  dtype = c(rep('acc',history$params$epochs),
+                            rep('val_acc',history$params$epochs)) %>% factor)
+plot_dat %>%
+  ggplot(aes(x=epoch,y=value,colour=dtype)) +
+  geom_point() +
+  geom_line() +
+  theme_bw()
+```
+
+## Performance
+
+Finally we can evaluate the model’s performance on the original ~10% left out test data:
+```{r eval_model}
+model %>% evaluate(x_test, y_test)
+```
+
+and we can visualise the predictions:
+```{r visualise_preds}
+y_pred  = model %>% predict_classes(x_test)
+y_real  = y_test %>% apply(1,function(x){ return( which(x==1) - 1) })
+results = tibble(y_real = y_real, y_pred = y_pred, TP = ifelse(y_real == y_pred,1,0) %>% factor)
+acc     = as.numeric(as.character(results$TP)) %>% mean %>% round(3)
+results %>%
+  ggplot(aes(x=y_real,y=y_pred,colour=TP)) +
+  geom_point() +
+  xlab("Real class") +
+  ylab("Predicted class by deep FFWD ANN") +
+  ggtitle(label = "Performance on 10% unseen data",
+          subtitle = paste("Accuracy =",acc)) +
+  scale_x_continuous(breaks = c(0,1,2), minor_breaks = NULL) +
+  scale_y_continuous(breaks = c(0,1,2), minor_breaks = NULL) +
+  geom_jitter() +
+  theme_bw()
+```
+
+That the end of this small tutorial - I hope you had fun!
