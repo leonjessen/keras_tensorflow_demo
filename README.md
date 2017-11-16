@@ -1,4 +1,5 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
 Have no fear, you're almost there!
 ==================================
 
@@ -49,7 +50,7 @@ That's it! Now we have all we need to be masters of the universe!
 Deep Feed Forward Artificial Neural Network
 ===========================================
 
-Here is a basic example of a deep FFWD ANN workflow
+Here is a basic example of a deep FFWD ANN workflow (This example is adapted from this [RStudio Keras](https://keras.rstudio.com/) tutorial).
 
 First we clear the workspace to avoid unintentional reuse of old variables
 
