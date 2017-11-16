@@ -9,6 +9,8 @@ Getting started
 
 You only need to do the following once!
 
+Go ahead and head on over to [The R Project for Statistical Computing](https://www.r-project.org/) and install the newest version of `R`. Then pop over to [RStudio](https://www.rstudio.com/products/rstudio/download/#download) and get their brilliant IDE.
+
 In order to use `Keras` and `TensorFlow`, we need to install them along with the `TidyVerse` framework. Since we're working with peptides in this example, we also need the `ggseqlogo` package for generating sequence logos. Fortunately this is straight forward using `devtools`:
 
 ``` r
