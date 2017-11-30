@@ -46,7 +46,7 @@ Followed by
 install_keras()
 ```
 
-That's it! Now we have all we need to be masters of the universe!
+That's it! Now we have all we need to be Data Science masters of the machine learning universe!
 
 Deep Feed Forward Artificial Neural Network
 ===========================================
@@ -235,34 +235,30 @@ Performance
 Finally we can evaluate the model’s performance on the original ~10% left out test data:
 
 ``` r
-model %>% evaluate(x_test, y_test)
+perf = model %>% evaluate(x_test, y_test)
+perf
 ```
 
     ## $loss
-    ## [1] 0.2766809
+    ## [1] 0.2271827
     ## 
     ## $acc
-    ## [1] 0.9339226
+    ## [1] 0.9402357
 
 and we can visualise the predictions:
 
 ``` r
 y_pred  = model %>% predict_classes(x_test)
 y_real  = y_test %>% apply(1,function(x){ return( which(x==1) - 1) })
-results = tibble(y_real = y_real, y_pred = y_pred, Correct = ifelse(y_real == y_pred,"yes","no") %>% factor)
-acc     = results$Correct %>% as.character %>% as.numeric %>% mean %>% round(3)
-```
-
-    ## Warning in function_list[[i]](value): NAs introduced by coercion
-
-``` r
+results = tibble(y_real = y_real, y_pred = y_pred,
+                 Correct = ifelse(y_real == y_pred,"yes","no") %>% factor)
 results %>%
   ggplot(aes(x = y_real, y = y_pred, colour = Correct)) +
   geom_point() +
   xlab("Real class") +
   ylab("Predicted class by deep FFWD ANN") +
-  ggtitle(label = "Performance on 10% unseen data",
-          subtitle = paste("Accuracy =",acc)) +
+  ggtitle(label    = "Performance on 10% unseen data",
+          subtitle = paste0("Accuracy = ",round(perf$acc,3)*100,"%")) +
   scale_x_continuous(breaks = c(0,1,2), minor_breaks = NULL) +
   scale_y_continuous(breaks = c(0,1,2), minor_breaks = NULL) +
   geom_jitter() +
@@ -272,3 +268,5 @@ results %>%
 ![](README_files/figure-markdown_github/visualise_preds-1.png)
 
 That the end of this small tutorial - I hope you had fun!
+
+Leon Eyrich Jessen
