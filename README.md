@@ -72,7 +72,7 @@ Then we load the example data
 
 ``` r
 pep_file = "https://raw.githubusercontent.com/leonjessen/keras_tensorflow_demo/master/data/ran_peps_netMHCpan40_predicted_A0201_reduced_cleaned_balanced.tsv"
-pep_dat = read_tsv(file = pep_file)
+pep_dat  = read_tsv(file = pep_file)
 ```
 
 The example peptide data looks like this
@@ -126,6 +126,8 @@ pep_dat %>% filter(label_chr=='SB') %>% pull(peptide) %>% ggseqlogo()
 Prepare data
 ------------
 
+We are creating a model `f`, where `x` is the peptide and `y` is one of three classes `SB`, `WB` and `NB`, such that `f(x) = y`. Each peptide is encoded using the [BLOSUM62 matrix](https://www.ncbi.nlm.nih.gov/Class/FieldGuide/BLOSUM62.txt), such that each peptide becomes an 'image' matrix with 9 rows and 20 columns.
+
 We need to define the `x_train`, `y_train`, `x_test` and `y_test`:
 
 ``` r
@@ -135,18 +137,18 @@ x_test  = pep_dat %>% filter(data_type == 'test') %>% pull(peptide) %>% pep_enco
 y_test  = pep_dat %>% filter(data_type == 'test') %>% pull(label_num) %>% array
 ```
 
-The x data is a 3-d array: ‘total \#peptides’ x ‘length of each peptide (9)’ x ‘number of unique residues (20)’ To prepare the data for training we convert the 3-d arrays into matrices by reshaping width and height into a single dimension (9x20 peptide ‘images’ are flattened into vectors of lengths 180)
+The x data is a 3-d array: ‘total number of peptides’ x ‘length of each peptide (9)’ x ‘number of unique residues (20)’ To prepare the data for training we convert the 3-d arrays into matrices by reshaping width and height into a single dimension (9x20 peptide ‘images’ are flattened into vectors of lengths 180)
 
 ``` r
 x_train = array_reshape(x_train, c(nrow(x_train), 180))
 x_test  = array_reshape(x_test, c(nrow(x_test), 180))
 ```
 
-The y data is an integer vector with values ranging from 0 to 2. To prepare this data for training we encode the vectors into binary class matrices using the Keras to\_categorical() function:
+The y data is an integer vector with values ranging from 0 to 2. To prepare this data for training we encode the vectors into binary class matrices using the Keras `to_categorical` function:
 
 ``` r
-y_train = to_categorical(y_train, y_train %>% table() %>% length)
-y_test  = to_categorical(y_test, y_test %>% table() %>% length)
+y_train = to_categorical(y_train, y_train %>% table %>% length)
+y_test  = to_categorical(y_test,  y_test  %>% table %>% length)
 ```
 
 Defining the model
@@ -240,7 +242,7 @@ perf
 ```
 
     ## $loss
-    ## [1] 0.2271827
+    ## [1] 0.2421194
     ## 
     ## $acc
     ## [1] 0.9402357
@@ -248,6 +250,7 @@ perf
 and we can visualise the predictions:
 
 ``` r
+acc     = perf$acc %>% round(3)*100
 y_pred  = model %>% predict_classes(x_test)
 y_real  = y_test %>% apply(1,function(x){ return( which(x==1) - 1) })
 results = tibble(y_real = y_real, y_pred = y_pred,
@@ -258,7 +261,7 @@ results %>%
   xlab("Real class") +
   ylab("Predicted class by deep FFWD ANN") +
   ggtitle(label    = "Performance on 10% unseen data",
-          subtitle = paste0("Accuracy = ",round(perf$acc,3)*100,"%")) +
+          subtitle = paste0("Accuracy = ", acc,"%")) +
   scale_x_continuous(breaks = c(0,1,2), minor_breaks = NULL) +
   scale_y_continuous(breaks = c(0,1,2), minor_breaks = NULL) +
   geom_jitter() +
