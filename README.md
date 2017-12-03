@@ -4,7 +4,9 @@ Keras/TensorFlow Demo
 Have no fear, you're almost there!
 ----------------------------------
 
-We need a few things installed before we're good to go, but I promise it'll be quick and painless!
+If you already have `tidyverse`, `keras`, `ggseqlogo` and `PepTools` installed, then you can skip directly to [this section](#deep-feed-forward-artificial-neural-network).
+
+We need a few things installed before we're good to go, but I promise it'll be quick and painless! <details> <summary>Click to see installation guide</summary>
 
 Getting started
 ---------------
@@ -46,7 +48,7 @@ Followed by
 install_keras()
 ```
 
-That's it! Now we have all we need to be Data Science masters of the machine learning universe!
+That's it! Now we have all we need to be Data Science masters of the machine learning universe! </details>
 
 Deep Feed Forward Artificial Neural Network
 ===========================================
@@ -115,13 +117,13 @@ pep_dat %>% group_by(label_chr, data_type) %>% summarise(n = n())
 
 Note this data set is derived from a model, so our final model in this example, will be a model of a model.
 
-We can use the very nice `ggseqlogo` package to visualise the sequence motif for the strong binders:
+We can use the very nice `ggseqlogo` package to visualise the sequence motif for the strong binders: <details> <summary>Click to see `ggseqlogo` code</summary>
 
 ``` r
 pep_dat %>% filter(label_chr=='SB') %>% pull(peptide) %>% ggseqlogo()
 ```
 
-![](README_files/figure-markdown_github/seq_logo-1.png)
+![](README_files/figure-markdown_github/seq_logo-1.png) </details>
 
 Prepare data
 ------------
@@ -131,17 +133,17 @@ We are creating a model `f`, where `x` is the peptide and `y` is one of three cl
 We need to define the `x_train`, `y_train`, `x_test` and `y_test`:
 
 ``` r
-x_train = pep_dat %>% filter(data_type == 'train') %>% pull(peptide) %>% pep_encode
+x_train = pep_dat %>% filter(data_type == 'train') %>% pull(peptide)   %>% pep_encode
 y_train = pep_dat %>% filter(data_type == 'train') %>% pull(label_num) %>% array
-x_test  = pep_dat %>% filter(data_type == 'test') %>% pull(peptide) %>% pep_encode
-y_test  = pep_dat %>% filter(data_type == 'test') %>% pull(label_num) %>% array
+x_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(peptide)   %>% pep_encode
+y_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(label_num) %>% array
 ```
 
 The x data is a 3-d array: ‘total number of peptides’ x ‘length of each peptide (9)’ x ‘number of unique residues (20)’ To prepare the data for training we convert the 3-d arrays into matrices by reshaping width and height into a single dimension (9x20 peptide ‘images’ are flattened into vectors of lengths 180)
 
 ``` r
 x_train = array_reshape(x_train, c(nrow(x_train), 180))
-x_test  = array_reshape(x_test, c(nrow(x_test), 180))
+x_test  = array_reshape(x_test,  c(nrow(x_test), 180))
 ```
 
 The y data is an integer vector with values ranging from 0 to 2. To prepare this data for training we encode the vectors into binary class matrices using the Keras `to_categorical` function:
@@ -216,7 +218,7 @@ history = model %>% fit(
 Visualise training
 ------------------
 
-We can visualise the training progress in each epoch using `ggplot`:
+We can visualise the training progress in each epoch using `ggplot`: <details> <summary>Click to see `ggplot` code</summary>
 
 ``` r
 plot_dat = tibble(epoch = rep(1:history$params$epochs,2),
@@ -229,7 +231,7 @@ plot_dat %>%
   theme_bw()
 ```
 
-![](README_files/figure-markdown_github/visualise_training-1.png)
+![](README_files/figure-markdown_github/visualise_training-1.png) </details>
 
 Performance
 -----------
@@ -242,12 +244,12 @@ perf
 ```
 
     ## $loss
-    ## [1] 0.2421194
+    ## [1] 0.2537786
     ## 
     ## $acc
-    ## [1] 0.9402357
+    ## [1] 0.9385522
 
-and we can visualise the predictions:
+and we can visualise the predictions: <details> <summary>Click to see `ggplot` code</summary>
 
 ``` r
 acc     = perf$acc %>% round(3)*100
@@ -268,8 +270,6 @@ results %>%
   theme_bw()
 ```
 
-![](README_files/figure-markdown_github/visualise_preds-1.png)
-
-That the end of this small tutorial - I hope you had fun!
+![](README_files/figure-markdown_github/visualise_preds-1.png) </details> That the end of this small tutorial - I hope you had fun!
 
 Leon Eyrich Jessen
