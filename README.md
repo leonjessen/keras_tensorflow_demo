@@ -269,7 +269,7 @@ results %>%
   geom_jitter() +
   theme_bw()
 ```
-
-![](README_files/figure-markdown_github/visualise_preds-1.png) </details> That the end of this small tutorial - I hope you had fun!
+</details>
+![](README_files/figure-markdown_github/visualise_preds-1.png) That the end of this small tutorial - I hope you had fun!
 
 Leon Eyrich Jessen
