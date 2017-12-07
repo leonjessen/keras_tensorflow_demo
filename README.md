@@ -1,12 +1,38 @@
-Keras/TensorFlow Demo
+Keras/TensorFlow in R Demo with Immunoinformatics as use-case
 ================
+
+Click on each section to expand or jump directly to the section of interest
+
+Introduction
+============
+
+<details> <summary>Click to expand</summary>
+
+### Aim
+
+The aim of this brief demo is to use deep learning to predict molecular interactions.
+
+### Background
+
+The use case is within immunological bioinformatics also known as immunoinformatics. Briefly, a key component in immune activation is the binding of small fragments of proteins known as peptide to a special molecule. Proteins and therefore peptides are made up of amino acids. Peptides are represented as a combination of the following 20 letters: `ARNDCQEGHILKMFPSTWYV`, such that a `9-mer` could be e.g. `GRTAEWMRW`. The special molecule binding the peptides is called Major Histocompability Complex Type 1 (MHCI) MHCI is located on the surface of the cells in our body and together with the bound peptide, MHCI reflects the health of the individual cells. If a cell is sick, this will be visible to the immune system via the MHCI-peptide interaction, as illustrated here by [Lund et al., 2005](https://mitpress.mit.edu/books/immunological-bioinformatics):
+
+<img src="README_files/figure-markdown_github/MHCI_pathway_cartoon.png" alt="Cartoon of the MHCI pathway" width="300" />
+
+### Data
+
+In this demo, we will be predicting if a given `9-mer` peptide will be a 'strong-binder' `SB`, 'weak-binder' `WB` or a 'non-binder' `NB` to the MHCI variant `HLA-A*02:01`. We will be using a data set created by submitting 1,000,000 random `9-mers` to [`netMHCpan-4.0`](http://www.cbs.dtu.dk/services/%60netMHCpan-4.0%60/) and predicting binding affinty to `HLA-A*02:01`. Based on the continuous binding affinty, each peptide is labeled `SB`, `WB` or `NB`. As `n(SB) < n(WB) << n(NB)`, the data set was balanced by down-sampling, such that `n(SB) = n(WB) = n(NB) = 7920`. Thusly, the data set has a total of `n(all) = 23760` data points. The data set was furthermore split into a `train` and `test` set, by random sampling 10% of the peptides. The data set is available [here](https://raw.githubusercontent.com/leonjessen/keras_tensorflow_demo/master/data/ran_peps_netMHCpan40_predicted_A0201_reduced_cleaned_balanced.tsv). It should be noted that this data set is derived from a model, so our final model in this example, will be a model of a model.
+
+</details>
+
+Setup
+=====
+
+<details> <summary>Click to expand</summary>
 
 Have no fear, you're almost there!
 ----------------------------------
 
-If you already have `tidyverse`, `keras`, `ggseqlogo` and `PepTools` installed, then you can skip directly to [this section](#deep-feed-forward-artificial-neural-network).
-
-We need a few things installed before we're good to go, but I promise it'll be quick and painless! <details> <summary>Click to see installation guide</summary>
+We need a few things installed before we're good to go, but I promise it'll be quick and painless!
 
 Getting started
 ---------------
@@ -15,7 +41,7 @@ You only need to do the following once!
 
 Go ahead and head on over to [The R Project for Statistical Computing](https://www.r-project.org/) and install the newest version of `R`. Then pop over to [RStudio](https://www.rstudio.com/products/rstudio/download/#download) and get their brilliant IDE.
 
-In order to use `Keras` and `TensorFlow`, we need to install them along with the `TidyVerse` framework. We also need `PepTools` for working with peptide data and the `ggseqlogo` package for generating sequence logos. Fortunately, this is straight forward using Hadley Wickham's `devtools`:
+In order to use [`Keras`](https://tensorflow.rstudio.com/) and [`TensorFlow`](https://tensorflow.rstudio.com/), we need to install them along with the [`TidyVerse`](https://www.tidyverse.org/) framework. We also need [`PepTools`](https://github.com/leonjessen/PepTools) for working with peptide data and lastly the [`ggseqlogo`](https://github.com/omarwagih/ggseqlogo) package for generating sequence logos. Fortunately, this is all straight forward using the ever brilliant [Hadley Wickham](https://pbs.twimg.com/profile_images/905186381995147264/7zKAG5sY.jpg)'s `devtools`:
 
 ``` r
 install.packages("devtools")
@@ -55,6 +81,9 @@ Deep Feed Forward Artificial Neural Network
 
 Here is a basic example of a deep FFWD ANN workflow (This example is adapted from this [RStudio Keras](https://keras.rstudio.com/) tutorial).
 
+Getting Started
+---------------
+
 First we clear the workspace to avoid unintentional reuse of old variables
 
 ``` r
@@ -77,6 +106,9 @@ pep_file = "https://raw.githubusercontent.com/leonjessen/keras_tensorflow_demo/m
 pep_dat  = read_tsv(file = pep_file)
 ```
 
+Understand the Data
+-------------------
+
 The example peptide data looks like this
 
 ``` r
@@ -98,7 +130,7 @@ pep_dat
     ## 10 NIWLAIIEL        WB         1     train
     ## # ... with 23,750 more rows
 
-Where `peptide` is a set of `9-mer` peptides, `label_chr` defines whether the peptide was predicted by `netMHCpan-4.0` to be a strong-binder `SB`, weak-binder `WB` or `NB` non-binder to `HLA-A*02:01`. `label_num` is equivalent to `label_chr`, only the predicted binding is coded into three numeric classes. Finally `data_type` defines whether the particular data point is part of the training set or the ~10% data left out and used for final evaluation. The data has been balanced, which we can see using `TidyVerse` methods to summarise the input data:
+Where `peptide` is a set of `9-mer` peptides, `label_chr` defines whether the peptide was predicted by [`netMHCpan-4.0`](http://www.cbs.dtu.dk/services/%60netMHCpan-4.0%60/) to be a strong-binder `SB`, weak-binder `WB` or `NB` non-binder to `HLA-A*02:01`. `label_num` is equivalent to `label_chr`, only the predicted binding is coded into three numeric classes. Finally `data_type` defines whether the particular data point is part of the training set or the ~10% data left out and used for final evaluation. The data has been balanced, which we can see using `TidyVerse` methods to summarise the input data:
 
 ``` r
 pep_dat %>% group_by(label_chr, data_type) %>% summarise(n = n())
@@ -115,22 +147,34 @@ pep_dat %>% group_by(label_chr, data_type) %>% summarise(n = n())
     ## 5        WB      test   792
     ## 6        WB     train  7128
 
-Note this data set is derived from a model, so our final model in this example, will be a model of a model.
-
-We can use the very nice `ggseqlogo` package to visualise the sequence motif for the strong binders: <details> <summary>Click to see `ggseqlogo` code</summary>
+We can use the very nice `ggseqlogo` package to visualise the sequence motif for the strong binders:
 
 ``` r
-pep_dat %>% filter(label_chr=='SB') %>% pull(peptide) %>% ggseqlogo()
+pep_dat %>% filter(label_chr=='SB') %>% pull(peptide) %>%
+  pssm_freqs %>% pssm_bits %>% t %>% ggseqlogo(method="custom")
 ```
 
-![](README_files/figure-markdown_github/seq_logo-1.png) </details>
+<img src="README_files/figure-markdown_github/seq_logo-1.png" style="display: block; margin: auto;" />
 
-Prepare data
-------------
+From the sequence logo, it is evident that positions 2 and 9 in the peptide are of paramount importance for the MHCI-peptide binding. In fact these positions are known as the anchor positions.
 
-We are creating a model `f`, where `x` is the peptide and `y` is one of three classes `SB`, `WB` and `NB`, such that `f(x) = y`. Each peptide is encoded using the [BLOSUM62 matrix](https://www.ncbi.nlm.nih.gov/Class/FieldGuide/BLOSUM62.txt), such that each peptide becomes an 'image' matrix with 9 rows and 20 columns.
+Understand the encoding
+-----------------------
 
-We need to define the `x_train`, `y_train`, `x_test` and `y_test`:
+Each peptide is encoded using the [BLOSUM62 matrix](https://www.ncbi.nlm.nih.gov/Class/FieldGuide/BLOSUM62.txt), such that each peptide becomes an 'image' matrix with 9 rows and 20 columns - Think of it as a QR code. We can visualise a peptide 'image' using `pep_plot_images()`:
+
+``` r
+pep_ran(n = 1, k = 9) %>% pep_plot_images
+```
+
+<img src="README_files/figure-markdown_github/visualise_peptide_encoding-1.png" style="display: block; margin: auto;" />
+
+Each of these 'QR codes' define whether a given peptide is a strong-binder, weak-binder or non-binder. It is now our task to identify the pattern in the 'image' define which of the 3 classes the peptide belong to.
+
+Prepare Data for TensorFlow
+---------------------------
+
+We are creating a model `f`, where `x` is the peptide and `y` is one of three classes `SB`, `WB` and `NB`, such that `y ~ f(x)`. We need to define the `x_train`, `y_train`, `x_test` and `y_test`:
 
 ``` r
 x_train = pep_dat %>% filter(data_type == 'train') %>% pull(peptide)   %>% pep_encode
@@ -139,24 +183,62 @@ x_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(peptide)   %>% pep_e
 y_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(label_num) %>% array
 ```
 
-The x data is a 3-d array: ‘total number of peptides’ x ‘length of each peptide (9)’ x ‘number of unique residues (20)’ To prepare the data for training we convert the 3-d arrays into matrices by reshaping width and height into a single dimension (9x20 peptide ‘images’ are flattened into vectors of lengths 180)
+The x data is a 3-d array (a tensor) with `n_rows x n_columns x n_slices = n_peptides x l_peptide x l_enc = 21384 x 9 x 20`, i.e. all the 'images'/'QR codes' we generated. To prepare the data for training we convert the tensor into a matrix by reshaping width and height into a single dimension (9 x 20 peptide ‘images’ are flattened into vectors of lengths 180 and stacked as rows)
 
 ``` r
 x_train = array_reshape(x_train, c(nrow(x_train), 180))
-x_test  = array_reshape(x_test,  c(nrow(x_test), 180))
+dim(x_train)
 ```
+
+    ## [1] 21384   180
+
+``` r
+x_test  = array_reshape(x_test,  c(nrow(x_test), 180))
+dim(x_test)
+```
+
+    ## [1] 2376  180
 
 The y data is an integer vector with values ranging from 0 to 2. To prepare this data for training we encode the vectors into binary class matrices using the Keras `to_categorical` function:
 
 ``` r
 y_train = to_categorical(y_train, y_train %>% table %>% length)
-y_test  = to_categorical(y_test,  y_test  %>% table %>% length)
+dim(y_train)
 ```
+
+    ## [1] 21384     3
+
+``` r
+y_train %>% head(3)
+```
+
+    ##      [,1] [,2] [,3]
+    ## [1,]    0    1    0
+    ## [2,]    0    0    1
+    ## [3,]    0    1    0
+
+``` r
+y_test  = to_categorical(y_test,  y_test  %>% table %>% length)
+dim(y_test)
+```
+
+    ## [1] 2376    3
+
+``` r
+y_test %>% head(3)
+```
+
+    ##      [,1] [,2] [,3]
+    ## [1,]    0    1    0
+    ## [2,]    0    1    0
+    ## [3,]    0    1    0
+
+Now that we have the data, we can proceed to creating our TensorFlow model.
 
 Defining the model
 ------------------
 
-The core data structure of Keras is a model, a way to organize layers. The simplest type of model is the Sequential model, a linear stack of layers. We begin by creating a sequential model and then adding layers using the pipe (`%>%`) operator:
+The core data structure of Keras is a model, a way to organize layers. The simplest type of model is the Sequential model, a linear stack of layers. We begin by creating a sequential model and then adding layers:
 
 ``` r
 model = keras_model_sequential() 
@@ -207,18 +289,18 @@ model %>% compile(
 Training and evaluation
 -----------------------
 
-We use the fit() function to train the model for 500 epochs using batches of 50 peptide ‘images’:
+We use the fit() function to train the model for 150 epochs using batches of 50 peptide ‘images’:
 
 ``` r
 history = model %>% fit(
   x_train, y_train, 
-  epochs = 500, batch_size = 50, validation_split = 0.2)
+  epochs = 150, batch_size = 50, validation_split = 0.2)
 ```
 
 Visualise training
 ------------------
 
-We can visualise the training progress in each epoch using `ggplot`: <details> <summary>Click to see `ggplot` code</summary>
+We can visualise the training progress in each epoch using `ggplot`:
 
 ``` r
 plot_dat = tibble(epoch = rep(1:history$params$epochs,2),
@@ -231,7 +313,7 @@ plot_dat %>%
   theme_bw()
 ```
 
-![](README_files/figure-markdown_github/visualise_training-1.png) </details>
+![](README_files/figure-markdown_github/visualise_training-1.png)
 
 Performance
 -----------
@@ -244,15 +326,15 @@ perf
 ```
 
     ## $loss
-    ## [1] 0.2537786
+    ## [1] 0.1992769
     ## 
     ## $acc
-    ## [1] 0.9385522
+    ## [1] 0.9389731
 
-and we can visualise the predictions: <details> <summary>Click to see `ggplot` code</summary>
+and we can visualise the predictions:
 
 ``` r
-acc     = perf$acc %>% round(3)*100
+acc     = perf$acc %>% round(3) * 100
 y_pred  = model %>% predict_classes(x_test)
 y_real  = y_test %>% apply(1,function(x){ return( which(x==1) - 1) })
 results = tibble(y_real = y_real, y_pred = y_pred,
@@ -270,6 +352,8 @@ results %>%
   theme_bw()
 ```
 
-![](README_files/figure-markdown_github/visualise_preds-1.png) </details> That the end of this small tutorial - I hope you had fun!
+![](README_files/figure-markdown_github/visualise_preds-1.png)
+
+That the end of this small demo - I hope you had fun!
 
 Leon Eyrich Jessen
