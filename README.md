@@ -326,10 +326,10 @@ perf
 ```
 
     ## $loss
-    ## [1] 0.1992769
+    ## [1] 0.1823313
     ## 
     ## $acc
-    ## [1] 0.9389731
+    ## [1] 0.9372896
 
 and we can visualise the predictions:
 
@@ -340,10 +340,10 @@ y_real  = y_test %>% apply(1,function(x){ return( which(x==1) - 1) })
 results = tibble(y_real = y_real, y_pred = y_pred,
                  Correct = ifelse(y_real == y_pred,"yes","no") %>% factor)
 results %>%
-  ggplot(aes(x = y_real, y = y_pred, colour = Correct)) +
+  ggplot(aes(x = y_pred, y = y_real, colour = Correct)) +
   geom_point() +
-  xlab("Real class") +
-  ylab("Predicted class by deep FFWD ANN") +
+  xlab("Measured (Real class, as predicted by netMHCpan-4.0)") +
+  ylab("Predicted (Class assigned by Keras/TensorFlow deep FFWD ANN)") +
   ggtitle(label    = "Performance on 10% unseen data",
           subtitle = paste0("Accuracy = ", acc,"%")) +
   scale_x_continuous(breaks = c(0,1,2), minor_breaks = NULL) +
